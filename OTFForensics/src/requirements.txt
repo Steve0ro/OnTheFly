@@ -1,0 +1,11 @@
+Pygments
+pytsk3
+oletools
+pyshark
+pyCrypto
+numpy
+pdftotext
+pyHexDump
+uncompyle6
+evtx2es
+olefile

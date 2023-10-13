@@ -1,0 +1,62 @@
+# Building the container with tag:
+#   docker build -t otf_forensics:latest .
+
+# Running the container with tag and loading files into container:
+#   docker run -v $PWD:/opt/dfir_data -it --rm otf_forensics /usr/bin/zsh 
+
+FROM ubuntu:latest
+
+LABEL maintainer="Steve0ro"
+
+WORKDIR $HOME
+
+ENV OPT /opt
+ENV HOME /root
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYENV_ROOT ${HOME}/.pyenv
+ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+
+RUN mkdir ${OPT}/Tool && \ 
+    mkdir ${OPT}/dfir_data
+
+RUN apt-get update -y && apt-get upgrade -y && apt-get update --fix-missing && apt-get install -y --no-install-recommends \
+    gcc iputils-ping yara zip zsh apktool binwalk llvm wget build-essential \
+    libssl-dev zlib1g-dev libbz2-dev libreadline-dev vim libsqlite3-dev curl libncursesw5-dev xz-utils \
+    tk-dev tmux git libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev cargo exif exiftool \
+    foremost forensics-all gron hexedit highlight httpie jq libfuse2 libguestfs-tools \
+    libpoppler-cpp-dev ltrace make libsqlite3-dev libncurses5-dev net-tools openjdk-17-jdk openjdk-17-jre \
+    p7zip-full p7zip-rar php poppler-utils reglookup sqlite3-tools steghide stegosuite tar \
+    tree tshark unrar unzip && apt-get update --fix-missing && rm -rf /var/lib/apt/lists/* && \
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata && \
+    curl https://pyenv.run | bash && echo "Y" | sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/ master/tools/install.sh)" && \
+    apt-get autoclean -y && apt-get autoremove -y
+
+# Git Repos
+RUN git clone https://github.com/danielbohannon/Revoke-Obfuscation ${OPT}/Tool/Revoke-Obfuscation && \
+    git clone https://github.com/PowerShell/PSScriptAnalyzer ${OPT}/Tool/PSScriptAnalyzer && \
+    git clone https://github.com/shelld3v/JSshell ${OPT}/Tool/JSshell && \
+    git clone https://github.com/DidierStevens/DidierStevensSuite ${OPT}/Tool/DidierStevensSuite && \
+    git clone https://github.com/omerbenamram/evtx ${OPT}/Tool/evtx && \
+    git clone https://github.com/WithSecureLabs/chainsaw ${OPT}/Tool/chainsaw && \
+    git clone https://github.com/SigmaHQ/sigma ${OPT}/Tool/sigma && \
+    git clone https://github.com/JohnHammond/vbe-decoder ${OPT}/Tool/vbe-decoder && \
+    git clone https://github.com/ANSSI-FR/bmc-tools ${OPT}/Tool/bmc-tools && \
+    git clone https://github.com/chronicle/GCTI ${OPT}/Tool/GCTI && \
+    git clone https://github.com/decalage2/oletools ${OPT}/Tool/oletools && \
+    git clone https://github.com/volatilityfoundation/volatility3 ${OPT}/Tool/Vol3 && \
+    git clone https://github.com/CYB3RMX/Qu1cksc0pe ${OPT}/Tool/QuickScope && \
+    git clone https://github.com/t0thkr1s/gpp-decrypt ${OPT}/Tool/gpp-decrypt && \
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting && \
+    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
+    git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions && \
+    git clone https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search
+  
+
+COPY src/steve0ro.zsh-theme ${HOME}/.oh-my-zsh/themes/
+COPY src/.zshrc ${HOME}
+COPY src/.tmux.conf ${HOME}
+COPY src/requirements.txt ${HOME}
+
+RUN pyenv update && pyenv install 3.11.3 && pyenv global 3.11.3 && \
+    pip install --upgrade pip && pip install --use-feature=fast-deps -r ${HOME}/requirements.txt && \
+    rm -rf ${HOME}/requirements.txt
